@@ -12,28 +12,22 @@ var MessageForm = React.createClass({
   onMessageChange: function(event){
     this.setState({ message: event.target.value })
   },
-  submitMessage: function(e) {
+
+  handleSubmit: function(e) {
     e.preventDefault();
 
-    var message = {
-      message: this.state.message.trim(),
-    };
+    var msg = { message: this.state.message.trim() };
 
-    var self = this;
-    $.ajax({
-      url: '/messages',
-      method: 'POST',
-      data: message
-    }).done(function(data){
-      self.props.loadMessagesFromServer();
+    this.props.submitMessage(msg, function (err) {
+      console.log("message submitted")
     });
 
-    this.setState({message: ''});
+    
   },
   render: function() {
     return (
       <div className="container myContainer">
-      <form onSubmit={ this.submitMessage }>
+      <form onSubmit={ this.handleSubmit }>
 
         <fieldset className="form-group">
           <input onChange={this.onMessageChange}  type="text" className="form-control"/>
@@ -48,9 +42,13 @@ var MessageForm = React.createClass({
 
 var MessageList = React.createClass({
   render: function() {
-      var messages = this.props.messages.map(function(item){
-    return <p> { item.message } </p>
-  });
+      if(this.props.messages) {
+        var messages = this.props.messages.map(function(item){
+          return <p> { item.message } </p>
+        });
+      } else {
+        var messages = "Loadinggg"
+      };
   return (
       <div>
         { messages }
@@ -66,21 +64,27 @@ var Chat = React.createClass({
       messages: null
     }
   },
-  loadMessagesFromServer: function(){
-    socket.on('messages', function (data) {
-      console.log(data, 'HI FROM WEB SOCKEt');
-      socket.emit('my other event', { my: 'data' });
+  submitMessage: function (message, callback) {
+    this.socket.emit('newMessage', message, function (err) {
+      if (err)
+        return console.error('New message error:', err);
+      callback();
     });
   },
   componentDidMount: function(){
-    this.loadMessagesFromServer()
+    var self = this;
+    this.socket = io();
+    this.socket.on('messages', function (messages) {
+      self.setState({ messages: messages });
+    });
+    this.socket.emit('fetchMessages');
   },
   render: function() {
     var messages = this.state.messages ? <MessageList messages={this.state.messages}/> : null
     return (
       <div className="jumbotron">
         { messages }
-        <MessageForm loadMessagesFromServer={this.loadMessagesFromServer}/>
+        <MessageForm submitMessage={this.submitMessage}/>
       </div>
       );
   }

@@ -50,22 +50,36 @@ app.post('/messages', function(req, res){
     if(err){
       res.status(500).send(err, 'Something broke!');
     } else {
+      console.log("Created new message", message)
       res.json(message)
     }
   })
 });
 
+var sendMessages = function (socket) {
+  Message.find(function(err, messages){
+    socket.emit('messages', messages);
+  })
+};
+
 
 io.on('connection', function (socket) {
-  socket.on('messages', function () {
-    Message.find(function(err, messages){
-      if(err){
-        socket.on('messages: err', err)
-      } else {
-        socket.on('messages: res', messages);
-      }
-    })
+  console.log('New client connected!');
+  
+  socket.on('fetchMessages', function () {
+    sendMessages(socket);
   });
+
+  socket.on('newMessage', function (message, callback) {
+    var msg = new Message(message);
+
+    msg.save(function(err, messages){
+      io.emit('messages', messages);
+      callback(err);
+    });
+
+  });
+
 });
 
 
