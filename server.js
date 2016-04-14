@@ -12,6 +12,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 var Message = require('./models/chat');
 
 
+var server = require('http').Server(app);
+var io = require('socket.io')(server);
+
+
 
 if (process.env.NODE_ENV === 'production') {
   console.log('Running in production mode');
@@ -51,19 +55,23 @@ app.post('/messages', function(req, res){
   })
 });
 
-app.get('/messages', function(req, res){
-  Message.find(function(err, messages){
-    if(err){
-      res.status(500).send(err, 'Something broke!');
-    } else {
-      res.json(messages)
-    }
-  })
+
+io.on('connection', function (socket) {
+  socket.on('messages', function () {
+    Message.find(function(err, messages){
+      if(err){
+        socket.on('messages: err', err)
+      } else {
+        socket.on('messages: res', messages);
+      }
+    })
+  });
 });
+
 
 
 var port = process.env.PORT || 3000;
 
-app.listen(port, function(){
+server.listen(port, function(){
   console.log("🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥\n🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥 fired up 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥 \n🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥 on " + port + " 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥\n🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥")
 });

@@ -67,14 +67,10 @@ var Chat = React.createClass({
     }
   },
   loadMessagesFromServer: function(){
-    var self = this;
-    $.ajax({
-      method: 'GET',
-      url: '/messages'
-    }).done(function(data){
-      console.log(data)
-      self.setState({messages: data})
-    })
+    socket.on('messages', function (data) {
+      console.log(data, 'HI FROM WEB SOCKEt');
+      socket.emit('my other event', { my: 'data' });
+    });
   },
   componentDidMount: function(){
     this.loadMessagesFromServer()
